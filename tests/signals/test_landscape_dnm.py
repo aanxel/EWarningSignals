@@ -1,5 +1,6 @@
 import unittest
 import pandas as pd
+import numpy as np
 
 from earlywarningsignals import COVID_CRIDA_CUMULATIVE
 from earlywarningsignals.signals import EWarningLDNM
@@ -100,12 +101,15 @@ class MyTestCase(unittest.TestCase):
                             0.006655255433282, 0.000082002717571, 0.000119059685632, 0.000048550162268,
                             0.000054577086739, 0.000714100504822] for _ in range(len(countries))]
 
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningLDNM(covid_file=COVID_CRIDA_CUMULATIVE,
                           start_date=pd.to_datetime('2020-02-03', format='%Y-%m-%d'),
                           end_date=pd.to_datetime('2020-02-20', format='%Y-%m-%d'),
                           countries=countries,
                           window_size=7, correlation='pearson', cumulative_data=True,
-                          progress_bar=False)
+                          static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual([[round(i, 10) for i in path] for path in ew.landscape_dnm()],

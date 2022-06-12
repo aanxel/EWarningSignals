@@ -1,5 +1,6 @@
 import unittest
 import pandas as pd
+import numpy as np
 from datetime import timedelta
 
 from earlywarningsignals import COVID_CRIDA_CUMULATIVE
@@ -236,12 +237,16 @@ class MyTestCase(unittest.TestCase):
                      0.000063399677175, 0.000134980439481, 0.000052352448395, 0.002983244055570, 0.003639433052130,
                      0.030732732962041]
 
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningDNM(covid_file=COVID_CRIDA_CUMULATIVE,
                          start_date=pd.to_datetime('2020-01-30', format='%Y-%m-%d'),
                          end_date=pd.to_datetime('2020-02-25', format='%Y-%m-%d'),
-                         countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'UA'],
-                         window_size=0, correlation='pearson', cumulative_data=True,
-                         progress_bar=False)
+                         countries=countries, window_size=0, correlation='pearson', cumulative_data=True,
+                         static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual([round(x, 10) for x in ew.mst_dnm()], [round(x, 10) for x in mst_dnm_s])
@@ -344,12 +349,16 @@ class MyTestCase(unittest.TestCase):
              0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]
         ]
 
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningDNM(covid_file=COVID_CRIDA_CUMULATIVE,
                          start_date=pd.to_datetime('2020-01-25', format='%Y-%m-%d'),
                          end_date=pd.to_datetime('2020-03-01', format='%Y-%m-%d'),
-                         countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'UA'],
-                         window_size=0, correlation='pearson', cumulative_data=True,
-                         progress_bar=False)
+                         countries=countries, window_size=0, correlation='pearson', cumulative_data=True,
+                         static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual([[round(i, 10) for i in path] for path in ew.sp_dnm([('ES', 'BE'), ('GB', 'AL')])],
@@ -404,12 +413,16 @@ class MyTestCase(unittest.TestCase):
         This test will check that the paths passed as argument are real ISO-3166-Alpha2 and contained in the list of
         countries to be studied.
         """
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningDNM(covid_file=COVID_CRIDA_CUMULATIVE,
                          start_date=pd.to_datetime('2020-01-22', format='%Y-%m-%d'),
                          end_date=pd.to_datetime('2020-03-01', format='%Y-%m-%d'),
-                         countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'UA'],
-                         window_size=0, correlation='spearman', cumulative_data=False,
-                         progress_bar=False)
+                         countries=countries, window_size=0, correlation='spearman', cumulative_data=False,
+                         static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         with self.assertRaises(CountryUndefinedException) as context:

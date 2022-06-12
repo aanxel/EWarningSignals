@@ -47,7 +47,8 @@ class EWarningSpecific(EWarningGeneral):
                  covid_file=general.COVID_FILE_DEFAULT, countries=general.COUNTRIES_DEFAULT,
                  window_size=general.WINDOW_SIZE_DEFAULT, correlation=general.CORRELATION_DEFAULT,
                  threshold=THRESHOLD_DEFAULT, cumulative_data=CUMULATIVE_DATA_DEFAULT,
-                 square_root_data=SQUARE_ROOT_DATA, progress_bar=general.PROGRESS_BAR_DEFAULT):
+                 square_root_data=SQUARE_ROOT_DATA, static_adjacency=general.STATIC_ADJACENCY_DEFAULT,
+                 progress_bar=general.PROGRESS_BAR_DEFAULT):
         """
         Main constructor for the Class that receive all possible parameters.
 
@@ -84,6 +85,7 @@ class EWarningSpecific(EWarningGeneral):
             the time or new daily cases of confirmed covid cases (True).
         :param bool square_root_data: Boolean that determines whether to apply the square root to each confirmed covid
             case value to smooth the results.
+        :param numpy [[float]] static_adjacency: Static adjacency for each graph.
         :param bool progress_bar: Boolean that determines whether a progress bar will be showing the progression.
 
         :raises:
@@ -94,7 +96,8 @@ class EWarningSpecific(EWarningGeneral):
                 countries list isn't contain in the database.
         """
         super().__init__(start_date=start_date, end_date=end_date, covid_file=covid_file, countries=countries,
-                         window_size=window_size, correlation=correlation, progress_bar=progress_bar)
+                         window_size=window_size, correlation=correlation, static_adjacency=static_adjacency,
+                         progress_bar=progress_bar)
         self.cumulative_data = cumulative_data
         self.square_root_data = square_root_data
         self.threshold = threshold
@@ -180,7 +183,7 @@ class EWarningSpecific(EWarningGeneral):
         for netUnweighted, netAdjacency in zip(self.networks_unweighted, self.adjacencies):
             # g = nx.Graph(netUnweighted)
             # densities.append(nx.density(g))
-            densities.append(np.count_nonzero(netUnweighted == 1) / np.count_nonzero(netAdjacency == 1))
+            densities.append(np.count_nonzero(netUnweighted == 1) / np.count_nonzero(netAdjacency > 0.0001))
         return np.array(densities)
 
     def clustering_coefficient(self):

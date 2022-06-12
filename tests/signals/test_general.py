@@ -1,4 +1,6 @@
 import unittest
+
+import numpy as np
 import pandas as pd
 
 from earlywarningsignals import COVID_CRIDA_CUMULATIVE
@@ -160,11 +162,13 @@ class TestEWarningGeneral(unittest.TestCase):
         the dates in the database. It assures that there are enough previous information and dates to the start_date
         based on the windows size. Same to test_check_windows_1() with different window_size.
         """
+        static_adjacency = np.ones(shape=(len(['ES', 'FR', 'AL', 'GB']), len(['ES', 'FR', 'AL', 'GB'])))
+        np.fill_diagonal(static_adjacency, 0)
         ew = EWarningGeneral(covid_file=COVID_CRIDA_CUMULATIVE,
                              start_date=pd.to_datetime('2020-01-22', format='%Y-%m-%d'),
                              end_date=pd.to_datetime('2020-03-01', format='%Y-%m-%d'),
                              countries=['ES', 'FR', 'AL', 'GB'], window_size=7,
-                             progress_bar=False)
+                             static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual(ew.start_date, pd.to_datetime('2020-01-28', format='%Y-%m-%d'))
@@ -175,11 +179,13 @@ class TestEWarningGeneral(unittest.TestCase):
         the dates in the database. It assures that there are enough previous information and dates to the start_date
         based on the windows size. Same to test_check_windows_2() with different window_size.
         """
+        static_adjacency = np.ones(shape=(len(['ES', 'FR', 'AL', 'GB']), len(['ES', 'FR', 'AL', 'GB'])))
+        np.fill_diagonal(static_adjacency, 0)
         ew = EWarningGeneral(covid_file=COVID_CRIDA_CUMULATIVE,
                              start_date=pd.to_datetime('2020-01-26', format='%Y-%m-%d'),
                              end_date=pd.to_datetime('2020-03-01', format='%Y-%m-%d'),
                              countries=['ES', 'FR', 'AL', 'GB'], window_size=7,
-                             progress_bar=False)
+                             static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual(ew.start_date, pd.to_datetime('2020-01-28', format='%Y-%m-%d'))
@@ -189,11 +195,13 @@ class TestEWarningGeneral(unittest.TestCase):
         Tests that the method check_windows() from the EWarningGeneral Class properly changes the start_date based on
         the dates in the database. Same to test_check_windows_3() with different window_size.
         """
+        static_adjacency = np.ones(shape=(len(['ES', 'FR', 'AL', 'GB']), len(['ES', 'FR', 'AL', 'GB'])))
+        np.fill_diagonal(static_adjacency, 0)
         ew = EWarningGeneral(covid_file=COVID_CRIDA_CUMULATIVE,
                              start_date=pd.to_datetime('2020-02-10', format='%Y-%m-%d'),
                              end_date=pd.to_datetime('2020-03-01', format='%Y-%m-%d'),
                              countries=['ES', 'FR', 'AL', 'GB'], window_size=7,
-                             progress_bar=False)
+                             static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual(ew.start_date, pd.to_datetime('2020-02-10', format='%Y-%m-%d'))

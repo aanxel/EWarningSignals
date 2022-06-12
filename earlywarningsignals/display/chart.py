@@ -10,7 +10,10 @@ def plot_chat(series, interval=None, series_2=None, x_label=None, y_label=None, 
     if series.shape[0] <= 0:
         raise Exception('To plot a chart the must be at least one time series.')
     if interval is None:
-        interval = list(range(series.shape[0]))
+        if len(series.shape) > 1:
+            interval = list(range(series[0].shape[0]))
+        else:
+            interval = list(range(series.shape[0]))
 
     if fig_size and dpi:
         plt.figure(figsize=fig_size, dpi=dpi)

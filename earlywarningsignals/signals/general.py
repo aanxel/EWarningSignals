@@ -20,15 +20,16 @@ from earlywarningsignals.__init__ import *
 from earlywarningsignals.signals.exceptions import DateOutRangeException, CountryUndefinedException
 
 # Default Class Parameters
-START_DATE_DEFAULT = pd.to_datetime('2020-02-15', format='%Y-%m-%d')
-END_DATE_DEFAULT = pd.to_datetime('2020-09-15', format='%Y-%m-%d')
+START_DATE_DEFAULT = pd.to_datetime('2020-03-01', format='%Y-%m-%d')
+END_DATE_DEFAULT = pd.to_datetime('2020-05-01', format='%Y-%m-%d')
 COVID_FILE_DEFAULT = COVID_JHU_CUMULATIVE
 COUNTRIES_DEFAULT = ['AL', 'AD', 'AM', 'AT', 'AZ', 'BE', 'BA', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'GE',
                      'DE', 'GR', 'HU', 'IS', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'MC', 'ME', 'NL', 'MK', 'NO',
                      'PL', 'PT', 'MD', 'RO', 'SM', 'RS', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA']
 WINDOW_SIZE_DEFAULT = 14
 CORRELATION_DEFAULT = 'pearson'
-
+STATIC_ADJACENCY_DEFAULT = np.ones((len(COUNTRIES_DEFAULT), len(COUNTRIES_DEFAULT)))
+np.fill_diagonal(STATIC_ADJACENCY_DEFAULT, 0)
 # Default Visualization Parameters
 PROGRESS_BAR_DEFAULT = True
 
@@ -44,6 +45,7 @@ class EWarningGeneral:
     def __init__(self, start_date=START_DATE_DEFAULT, end_date=END_DATE_DEFAULT,
                  covid_file=COVID_FILE_DEFAULT, countries=COUNTRIES_DEFAULT,
                  window_size=WINDOW_SIZE_DEFAULT, correlation=CORRELATION_DEFAULT,
+                 static_adjacency=STATIC_ADJACENCY_DEFAULT,
                  progress_bar=PROGRESS_BAR_DEFAULT):
         """
         Main constructor for the Class that receive all possible parameters.
@@ -74,6 +76,7 @@ class EWarningGeneral:
                  - "spearman": Spearman Correlation
                  - "kendall":Kendall Correlation
                  - any other value: Pearson Correlation
+        :param numpy [[float]] static_adjacency: Static adjacency for each graph.
         :param bool progress_bar: Boolean that determines whether a progress bar will be showing the progression.
 
         :raises:
@@ -88,6 +91,7 @@ class EWarningGeneral:
         self.countries = sorted(set(countries))  # Sorted list without repetitions
         self.window_size = window_size
         self.correlation = correlation
+        self.static_adjacency = static_adjacency
 
         self.progress_bar = progress_bar
 
@@ -173,6 +177,9 @@ class EWarningGeneral:
             raise CountryUndefinedException('All ISO-3166-Alpha2 country references in <countries> must exist and be '
                                             'contained in the database. Errors: '
                                             f'{sorted(countries_set.difference(countries_db))}')
+        if self.static_adjacency.shape != (len(self.countries), len(self.countries)):
+            raise CountryUndefinedException('The number of columns and rows in <static_adjacency> must be equal to the'
+                                            'number of elements in <countries>.')
 
     def import_data(self, start_date_window):
         """
@@ -227,6 +234,7 @@ class EWarningGeneral:
             self.adjacencies = self.generate_adjacencies(start_date_window)
             self.networks = self.generate_networks(start_date_window)
             self.start_date += timedelta(self.window_size - 1 - rest_days)
+        self.networks = np.multiply(self.networks, self.adjacencies)
 
     def calculate_correlation(self, x, y):
         """
@@ -323,11 +331,9 @@ class EWarningGeneral:
         :rtype: numpy [[[int]]]
         """
         adjacencies = []
-        adjacency = np.ones((len(self.countries), len(self.countries)))
-        np.fill_diagonal(adjacency, 0)
         day = start_date_window
         while day + timedelta(days=self.window_size) <= self.end_date + timedelta(days=1):
-            adjacencies.append(adjacency)
+            adjacencies.append(self.static_adjacency)
             day += timedelta(days=1)
         return np.array(adjacencies)
 

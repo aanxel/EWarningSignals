@@ -1,0 +1,5 @@
+dist
+EWarningSignals.egg-info
+test_library
+test_library_linux
+.idea

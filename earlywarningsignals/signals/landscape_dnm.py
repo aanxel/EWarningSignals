@@ -6,6 +6,10 @@ from scipy import stats
 from earlywarningsignals.signals import EWarningDNM
 import earlywarningsignals.signals.general as general
 import earlywarningsignals.signals.dnm as dnm
+# Time and Progress Bar Libraries
+from tqdm import tqdm
+from datetime import timedelta
+import multiprocessing as mp
 
 
 class EWarningLDNM(EWarningDNM):
@@ -17,11 +21,11 @@ class EWarningLDNM(EWarningDNM):
     and hence all countries have the same date for its last report. (All things has been proved)
     """
 
-    def __init__(self, start_date=general.START_DATE_DEFAULT,
-                 end_date=general.END_DATE_DEFAULT,
+    def __init__(self, start_date=general.START_DATE_DEFAULT, end_date=general.END_DATE_DEFAULT,
                  covid_file=general.COVID_FILE_DEFAULT, countries=general.COUNTRIES_DEFAULT,
                  window_size=dnm.WINDOW_SIZE_DEFAULT, correlation=general.CORRELATION_DEFAULT,
-                 cumulative_data=dnm.CUMULATIVE_DATA_DEFAULT, progress_bar=general.PROGRESS_BAR_DEFAULT):
+                 cumulative_data=dnm.CUMULATIVE_DATA_DEFAULT, static_adjacency=general.STATIC_ADJACENCY_DEFAULT,
+                 progress_bar=general.PROGRESS_BAR_DEFAULT):
         """
         Main constructor for the Class that receive all possible parameters.
 
@@ -53,6 +57,7 @@ class EWarningLDNM(EWarningDNM):
                  - any other value: Pearson Correlation
         :param bool cumulative_data: Boolean that determines whether to use cumulative confirmed covid cases (True) over
             the time or new daily cases of confirmed covid cases (True).
+        :param numpy [[float]] static_adjacency: Static adjacency for each graph.
         :param bool progress_bar: Boolean that determines whether a progress bar will be showing the progression.
 
         :raises:
@@ -65,24 +70,89 @@ class EWarningLDNM(EWarningDNM):
         self.l_dnm_s = []
         super().__init__(start_date=start_date, end_date=end_date, covid_file=covid_file, countries=countries,
                          window_size=window_size, correlation=correlation, cumulative_data=cumulative_data,
-                         progress_bar=progress_bar)
+                         static_adjacency=static_adjacency, progress_bar=progress_bar)
 
-    # def import_data(self, start_date_window):
-    #     """
-    #     Import for every country, the original cumulative data of confirmed covid cases between the established dates
-    #     of study taking into account the size of the window. In addition, it creates the variable that will collect
-    #     the landscape signal markers.
-    #
-    #     :param string start_date_window: Start date corresponding to the first window's date, which will be as many days
-    #         prior to the real start date of study as the size of the windows minus one.
-    #
-    #     :return: Matrix with the original cumulative data of confirmed covid cases. Each Row represents
-    #         a country, and each Column contains the cases from the first date of study until the end date.
-    #     :rtype: [[int]]
-    #     """
-    #     data = super().import_data(start_date_window)
-    #     self.l_dnm_s = [[] for _ in range(data.shape[0])]
-    #     return data
+    def generate_networks(self, start_date_window):
+        """
+        Generates a correlation matrix for each instant of study between the start date and the end date. This means
+        that for every pair of windows containing the confirmed covid cases for each possible pair of countries,
+        are used to calculate its correlation coefficient which will determinate the weight of the edge that connects
+        them both in the graph. The new incorporation is that for each network it is required a total of two windows
+        for each country instead of one. This method is oriented for instances with window size greater than zero.
+
+        :param pandas datetime start_date_window: Start date corresponding to the first window's date, which will be
+            as many days prior to the real start date of study as the size of the windows minus one.
+
+        :return: List of the correlation matrices for each temporal instant from the start date to the end date.
+        :rtype: numpy [[[float]]]
+        """
+        networks = []
+        i = 0
+        if self.progress_bar:
+            pbar = tqdm(total=((self.end_date + timedelta(days=2)) -
+                               (start_date_window + timedelta(days=self.window_size))).days)
+            while start_date_window + timedelta(days=self.window_size) <= self.end_date + timedelta(days=1):
+                window = self.data[:, i:i + self.window_size]
+                window_t0 = window[:, :-1]
+                window_t1 = window[:, 1:]
+                # print(f't-1: {window_t0}')
+                # print(f't: {window_t1}')
+                networks.append(self.window_to_network(window_t0, window_t1, i))
+                start_date_window += timedelta(days=1)
+                i += 1
+                pbar.update(1)
+            pbar.close()
+        else:
+            while start_date_window + timedelta(days=self.window_size) <= self.end_date + timedelta(days=1):
+                window = self.data[:, i:i + self.window_size]
+                window_t0 = window[:, :-1]
+                window_t1 = window[:, 1:]
+                # print(f't-1: {window_t0}')
+                # print(f't: {window_t1}')
+                networks.append(self.window_to_network(window_t0, window_t1, i))
+                start_date_window += timedelta(days=1)
+                i += 1
+        return np.array(networks)
+
+    def generate_networks_no_window(self, start_date_window):
+        """
+        Generates a correlation matrix for each instant of study between the start date and the end date. This means
+        that for every pair of windows containing the confirmed covid cases for each possible pair of countries,
+        are used to calculate its correlation coefficient which will determinate the weight of the edge that
+        connects them both in the graph. The new incorporation is that for each network it is required a total of two
+        windows for each country instead of one. This method is oriented for instances with no window size,
+        which is the same as window size equal to zero.
+
+        :param start_date_window: Start date corresponding to the first window's date, which will be as many days prior
+            to the real start date of study as the size of the windows minus one.
+
+        :return: List of the correlation matrices for each temporal instant from the start date to the end date.
+        :rtype: numpy [[[float]]]
+        """
+        networks = []
+        i = 0
+        if self.progress_bar:
+            pbar = tqdm(total=(self.end_date + timedelta(days=1) - start_date_window).days)
+            while start_date_window + timedelta(days=2) <= self.end_date:
+                window_t1 = self.data[:, :i + 2 + 1]
+                window_t0 = window_t1[:, :-1]
+                # print(f't-1: {window_t0}')
+                # print(f't: {window_t1}')
+                networks.append(self.window_to_network(window_t0, window_t1, i))
+                start_date_window += timedelta(days=1)
+                i += 1
+                pbar.update(1)
+            pbar.close()
+        else:
+            while start_date_window + timedelta(days=2) <= self.end_date:
+                window_t1 = self.data[:, :i + 2 + 1]
+                window_t0 = window_t1[:, :-1]
+                # print(f't-1: {window_t0}')
+                # print(f't: {window_t1}')
+                networks.append(self.window_to_network(window_t0, window_t1, i))
+                start_date_window += timedelta(days=1)
+                i += 1
+        return np.array(networks)
 
     def generate_adjacencies(self, start_date_window):
         adjacencies = super().generate_adjacencies(start_date_window)
@@ -98,7 +168,31 @@ class EWarningLDNM(EWarningDNM):
 
         return adjacencies
 
-    def window_to_network(self, window_t0, window_t1, adjacency_t0, adjacency_t1):
+    def parallel_window_to_network(self, node, window_t0, window_t1, adjacency):
+        sd = 0
+        cc_in = 0
+        cc_out = 0
+        nodes_in = [node] + np.where(adjacency[node] > 0)[0].tolist()
+        # Average Differential Standard Deviation of nodes in local network
+        for i in nodes_in:
+            sd += abs(stats.tstd(window_t1[i]) - stats.tstd(window_t0[i]))
+        sd /= len(nodes_in)
+
+        for i, (x_t0, x_t1) in enumerate(zip(window_t0, window_t1)):
+            for j, (y_t0, y_t1) in enumerate(zip(window_t0, window_t1)):
+                # Average Differential Correlation Coefficient within local network
+                if i in nodes_in and j in nodes_in:
+                    cc_in += abs(self.calculate_correlation(x_t1, y_t1) - self.calculate_correlation(x_t0, y_t0))
+                # Average Differential Correlation Coefficient between a node
+                # inside the local network and an outside node
+                elif i in nodes_in or j in nodes_in:
+                    cc_out += abs(self.calculate_correlation(x_t1, y_t1) - self.calculate_correlation(x_t0, y_t0))
+        cc_in /= len(nodes_in) * len(nodes_in)
+        cc_out /= len(nodes_in) * len(nodes_in)
+        # Return landscape value for node
+        return sd * (cc_in + cc_out)
+
+    def window_to_network(self, window_t0, window_t1, index):
         """
         Transform the data of the confirmed covid cases of the two fixed windows with one date of difference between
         them to the graph matrix of the network, where the edges represent the coefficient correlation between
@@ -108,43 +202,47 @@ class EWarningLDNM(EWarningDNM):
             represent each country and the Columns represent each date from the latest to the new ones.
         :param [[float]] window_t1: Data of the confirmed covid cases in a fixed period of time, where the Rows
             represent each country and the Columns represent each date from the latest to the new ones.
-        :param [[int]] adjacency_t0: Adjacency matrix as a 2d int array of the window_t0. In this case is not needed,
-            so it will be ignored.
-        :param [[int]] adjacency_t1: Adjacency matrix as a 2d int array of the window_t1. Used to detect all the local
-            networks.
 
         :return: The network's matrix created with the data of the two fixed time windows.
         :rtype: [[float]]
         """
         network = np.zeros((window_t0.shape[0], window_t0.shape[0]))
-        for node, _ in enumerate(window_t1):
-            sd = 0
-            cc_in = 0
-            cc_out = 0
-            nodes_in = [node] + np.where(adjacency_t1[node] == 1)[0].tolist()
-            # Average Differential Standard Deviation of nodes in local network
-            for i, (x_t0, x_t1) in enumerate(zip(window_t0, window_t1)):
-                if i in nodes_in:
-                    sd += abs(stats.tstd(x_t1) - stats.tstd(x_t0))
-            sd /= len(nodes_in)
+        # for node, _ in enumerate(window_t1):
+        #     sd = 0
+        #     cc_in = 0
+        #     cc_out = 0
+        #     nodes_in = [node] + np.where(self.adjacencies[index + 1][node] > 0)[0].tolist()
+        #     # Average Differential Standard Deviation of nodes in local network
+        #     for i, (x_t0, x_t1) in enumerate(zip(window_t0, window_t1)):
+        #         if i in nodes_in:
+        #             sd += abs(stats.tstd(x_t1) - stats.tstd(x_t0))
+        #
+        #     for i, (x_t0, x_t1) in enumerate(zip(window_t0, window_t1)):
+        #         for j, (y_t0, y_t1) in enumerate(zip(window_t0, window_t1)):
+        #             # Average Differential Correlation Coefficient within local network
+        #             cc_t0 = self.calculate_correlation(x_t0, y_t0)
+        #             cc_t1 = self.calculate_correlation(x_t1, y_t1)
+        #             if i in nodes_in and j in nodes_in:
+        #                 cc_in += abs(cc_t1 - cc_t0)
+        #             # Average Differential Correlation Coefficient between a node
+        #             # inside the local network and an outside node
+        #             elif i in nodes_in or j in nodes_in:
+        #                 cc_out += abs(cc_t1 - cc_t0)
+        #     cc_in /= len(nodes_in) * len(nodes_in)
+        #     cc_out /= len(nodes_in) * len(nodes_in)
+        #     # Save index
+        #     self.l_dnm_s[node][index] = sd * (cc_in + cc_out)
 
-            for i, (x_t0, x_t1) in enumerate(zip(window_t0, window_t1)):
-                for j, (y_t0, y_t1) in enumerate(zip(window_t0, window_t1)):
-                    # Average Differential Correlation Coefficient within local network
-                    cc_t0 = self.calculate_correlation(x_t0, y_t0)
-                    cc_t1 = self.calculate_correlation(x_t1, y_t1)
-                    if i in nodes_in and j in nodes_in:
-                        cc_in += abs(cc_t1 - cc_t0)
-                    # Average Differential Correlation Coefficient between a node
-                    # inside the local network and an outside node
-                    elif i in nodes_in or j in nodes_in:
-                        cc_out += abs(cc_t1 - cc_t0)
-            cc_in /= len(nodes_in) * len(nodes_in)
-            cc_out /= len(nodes_in) * len(nodes_in)
-            # Save index
-            self.l_dnm_s[node][np.where(np.isnan(self.l_dnm_s[node]))[0][0]] = sd * (cc_in + cc_out)
+        pool = mp.Pool(mp.cpu_count())
+        dnm_index = pool.starmap(self.parallel_window_to_network,
+                                 [(node, window_t0, window_t1, self.adjacencies[index + 1])
+                                  for node in range(len(self.countries))])
+        pool.close()
 
-            # For maintaining some values in the general network
+        self.l_dnm_s[:, index] = np.array(dnm_index)
+
+        # For maintaining some values in the general network
+        for node in range(len(self.countries)):
             x_t0 = window_t0[node]
             x_t1 = window_t1[node]
             for j, (y_t0, y_t1) in enumerate(zip(window_t0, window_t1)):

@@ -93,12 +93,18 @@ class MyTestCase(unittest.TestCase):
                      0.027777777777778, 0.111111111111111, 0.166666666666667, 0.25, 0.277777777777778,
                      0.277777777777778]
 
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningSpecific(covid_file=COVID_CRIDA_CUMULATIVE,
                               start_date=pd.to_datetime('2020-01-22', format='%Y-%m-%d'),
                               end_date=pd.to_datetime('2020-03-01', format='%Y-%m-%d'),
-                              countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA'],
+                              countries=countries,
                               window_size=14, correlation='kendall', threshold=0.7,
-                              cumulative_data=True, square_root_data=True, progress_bar=False)
+                              cumulative_data=True, square_root_data=True,
+                              static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual([round(x, 10) for x in ew.density()], [round(x, 10) for x in densities])
@@ -184,12 +190,18 @@ class MyTestCase(unittest.TestCase):
                                    0.166666666666667, 0., 0., 0., 0.222222222222222, 0.277777777777778,
                                    0.277777777777778]
 
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningSpecific(covid_file=COVID_CRIDA_CUMULATIVE,
                               start_date=pd.to_datetime('2020-01-25', format='%Y-%m-%d'),
                               end_date=pd.to_datetime('2020-02-27', format='%Y-%m-%d'),
-                              countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA'],
+                              countries=countries,
                               window_size=15, correlation='kendall', threshold=0.3,
-                              cumulative_data=True, square_root_data=True, progress_bar=False)
+                              cumulative_data=True, square_root_data=True,
+                              static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual([round(x, 10) for x in ew.clustering_coefficient()],
@@ -283,12 +295,18 @@ class MyTestCase(unittest.TestCase):
                                       float('nan'), float('nan'), float('nan'), float('nan'), float('nan'),
                                       -0.666666666666679, -0.548387096774194, float('nan'), float('nan'), float('nan')]
 
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningSpecific(covid_file=COVID_CRIDA_CUMULATIVE,
                               start_date=pd.to_datetime('2020-01-30', format='%Y-%m-%d'),
                               end_date=pd.to_datetime('2020-03-01', format='%Y-%m-%d'),
-                              countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA'],
+                              countries=countries,
                               window_size=14, correlation='pearson', threshold=0.8,
-                              cumulative_data=True, square_root_data=True, progress_bar=False)
+                              cumulative_data=True, square_root_data=True,
+                              static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertTrue(np.allclose(ew.assortativity_coefficient(), assortativity_coefficients, rtol=0, atol=1e-10,
@@ -357,12 +375,18 @@ class MyTestCase(unittest.TestCase):
         """
         number_edges = [7, 7, 7, 7, 6, 5, 4, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 3, 4]
 
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningSpecific(covid_file=COVID_CRIDA_CUMULATIVE,
                               start_date=pd.to_datetime('2020-01-30', format='%Y-%m-%d'),
                               end_date=pd.to_datetime('2020-02-28', format='%Y-%m-%d'),
-                              countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA'],
+                              countries=countries,
                               window_size=20, correlation='spearman', threshold=0.8,
-                              cumulative_data=True, square_root_data=True, progress_bar=False)
+                              cumulative_data=True, square_root_data=True,
+                              static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual([round(x, 10) for x in ew.number_edges()], [round(x, 10) for x in number_edges])
@@ -445,12 +469,18 @@ class MyTestCase(unittest.TestCase):
                  22887542138899446, 21313997026347132, 21313997026347132, 21313996802290570, 21313996802290570,
                  21313996578234008, 21313996130120884, 8862311161607000, 8862311161607000, 8862310508872000]
 
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningSpecific(covid_file=COVID_CRIDA_CUMULATIVE,
                               start_date=pd.to_datetime('2020-01-31', format='%Y-%m-%d'),
                               end_date=pd.to_datetime('2020-02-23', format='%Y-%m-%d'),
-                              countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA'],
+                              countries=countries,
                               window_size=14, correlation='pearson', threshold=0.7,
-                              cumulative_data=True, square_root_data=True, progress_bar=False)
+                              cumulative_data=True, square_root_data=True,
+                              static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual([round(x, 10) for x in ew.prs(COUNTRY_INFO_CRIDA)], [round(x, 10) for x in prs_s])
@@ -537,12 +567,18 @@ class MyTestCase(unittest.TestCase):
                                    3.666666666666667, 2.857142857142857, 2.4, 1.75, 3., 3., 3., 3., 3., 2., 2., 2., 2.,
                                    4., 5., 5., 5., 5., 6.]
 
+        countries = ['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA']
+
+        static_adjacency = np.ones(shape=(len(countries), len(countries)))
+        np.fill_diagonal(static_adjacency, 0)
+
         ew = EWarningSpecific(covid_file=COVID_CRIDA_CUMULATIVE,
                               start_date=pd.to_datetime('2020-01-31', format='%Y-%m-%d'),
                               end_date=pd.to_datetime('2020-03-01', format='%Y-%m-%d'),
-                              countries=['AL', 'BE', 'FR', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA'],
+                              countries=countries,
                               window_size=14, correlation='pearson', threshold=0.5,
-                              cumulative_data=True, square_root_data=True, progress_bar=False)
+                              cumulative_data=True, square_root_data=True,
+                              static_adjacency=static_adjacency, progress_bar=False)
         ew.check_windows()
 
         self.assertEqual([round(x, 10) for x in ew.forman_ricci_curvature()],

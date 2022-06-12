@@ -30,11 +30,11 @@ class EWarningDNM(EWarningGeneral):
     and hence all countries have the same date for its last report. (All things has been proved)
     """
 
-    def __init__(self, start_date=general.START_DATE_DEFAULT,
-                 end_date=general.END_DATE_DEFAULT,
+    def __init__(self, start_date=general.START_DATE_DEFAULT, end_date=general.END_DATE_DEFAULT,
                  covid_file=general.COVID_FILE_DEFAULT, countries=general.COUNTRIES_DEFAULT,
                  window_size=WINDOW_SIZE_DEFAULT, correlation=general.CORRELATION_DEFAULT,
-                 cumulative_data=CUMULATIVE_DATA_DEFAULT, progress_bar=general.PROGRESS_BAR_DEFAULT):
+                 cumulative_data=CUMULATIVE_DATA_DEFAULT, static_adjacency=general.STATIC_ADJACENCY_DEFAULT,
+                 progress_bar=general.PROGRESS_BAR_DEFAULT):
         """
         Main constructor for the Class that receive all possible parameters.
 
@@ -66,6 +66,7 @@ class EWarningDNM(EWarningGeneral):
                  - any other value: Pearson Correlation
         :param bool cumulative_data: Boolean that determines whether to use cumulative confirmed covid cases (True) over
             the time or new daily cases of confirmed covid cases (True).
+        :param numpy [[float]] static_adjacency: Static adjacency for each graph.
         :param bool progress_bar: Boolean that determines whether a progress bar will be showing the progression.
 
         :raises:
@@ -76,7 +77,8 @@ class EWarningDNM(EWarningGeneral):
                 countries list isn't contain in the database.
         """
         super().__init__(start_date=start_date, end_date=end_date, covid_file=covid_file, countries=countries,
-                         window_size=window_size, correlation=correlation, progress_bar=progress_bar)
+                         window_size=window_size, correlation=correlation, static_adjacency=static_adjacency,
+                         progress_bar=progress_bar)
         self.cumulative_data = cumulative_data
 
     def check_dates(self):
@@ -143,8 +145,21 @@ class EWarningDNM(EWarningGeneral):
             self.networks = self.generate_networks_no_window(start_date_window)
         else:
             self.window_size += 1
-            super().check_windows()
+            if rest_days >= self.window_size:
+                start_date_window = self.start_date - timedelta(self.window_size - 1)
+                self.data_original = self.import_data(start_date_window)
+                self.data = self.transform_data(start_date_window)
+                self.adjacencies = self.generate_adjacencies(start_date_window)
+                self.networks = self.generate_networks(start_date_window)
+            else:
+                start_date_window = self.start_date - timedelta(rest_days)
+                self.data_original = self.import_data(start_date_window)
+                self.data = self.transform_data(start_date_window)
+                self.adjacencies = self.generate_adjacencies(start_date_window)
+                self.networks = self.generate_networks(start_date_window)
+                self.start_date += timedelta(self.window_size - 1 - rest_days)
             self.window_size -= 1
+        self.networks = np.multiply(self.networks, self.adjacencies[1:])
 
     def window_to_network(self, window_t0, window_t1, adjacency_t0, adjacency_t1):
         """

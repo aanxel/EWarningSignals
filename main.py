@@ -5,10 +5,12 @@ import pandas as pd
 import numpy as np
 from earlywarningsignals.__init__ import COVID_CRIDA_CUMULATIVE, ACTUAL_DIR, DATA_DIR
 from earlywarningsignals.signals.flight_adjacencies import *
-from earlywarningsignals.display import chart
-from earlywarningsignals.display import map
+from earlywarningsignals.display import chart, map
 
-from earlywarningsignals.signals import EWarningLDNM, EWarningSpecific, general
+import earlywarningsignals.signals.flight_adjacencies as flight_adjacencies
+
+
+from earlywarningsignals.signals import EWarningLDNM, EWarningSpecific, general, EWarningSpecificDynamic
 
 
 def main():
@@ -139,4 +141,19 @@ def main4():
 
 
 if __name__ == '__main__':
-    main2()
+    ew = EWarningSpecificDynamic(start_date=pd.to_datetime('2020-02-15', format='%Y-%m-%d'),
+                                 cumulative_data=False, square_root_data=False, progress_bar=False, threshold=0.000001)
+    ew.check_windows()
+    clustering_0 = ew.clustering_coefficient()
+
+    new_cases = np.sum(ew.data[:, ew.window_size - 1:], axis=0)
+
+    ew = EWarningSpecific(start_date=pd.to_datetime('2020-02-15', format='%Y-%m-%d'),
+                          cumulative_data=False, square_root_data=False, progress_bar=False)
+    ew.check_windows()
+    clustering_1 = ew.clustering_coefficient()
+
+    chart.plot_chat(series=np.stack((clustering_0, clustering_1), axis=0), series_2=new_cases,
+                    fold_changes=[-1, -1], fold_steps=[-1, -1],
+                    legends=['clustering_coefficient_0', 'clustering_coefficient_1'], legends_2='Daily Covid cases')
+    plt.show()

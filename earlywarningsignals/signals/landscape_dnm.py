@@ -155,20 +155,62 @@ class EWarningLDNM(EWarningDNM):
         return np.array(networks)
 
     def generate_adjacencies(self, start_date_window):
+        """
+        Generates an adjacency matrix for each instant of study between the start date and the end date. By default,
+        the matrix generated represents a complete graph, which means that each node can be connected to every other
+        node except itself. This means that all adjacency matrices will be filled with 1's except the main diagonal
+        (top-left to bottom-right) that will be filled with 0's. This class will have one adjacency more than networks,
+        because each network is compose of two different windows. This method is oriented for instances with window size
+        greater than zero. For this class instantiation, it also generates an empty array with the needed shape for the
+        storage of the early warning signals.
+
+        :param pandas datetime start_date_window: Start date corresponding to the first window's date, which will be
+            as many days prior to the real start date of study as the size of the windows minus one.
+
+        :return: List of the adjacency matrices for each temporal instant from the start date to the end date.
+        :rtype: numpy [[[int]]]
+        """
         adjacencies = super().generate_adjacencies(start_date_window)
         self.l_dnm_s = np.empty((len(self.countries), adjacencies.shape[0] - 1))
-        self.l_dnm_s[:] = np.nan
-
         return adjacencies
 
     def generate_adjacencies_no_window(self, start_date_window):
+        """
+        Generates an adjacency matrix for each instant of study between the start date and the end date. By default,
+        the matrix generated represents a complete graph, which means that each node can be connected to every other
+        node except itself. This means that all adjacency matrices will be filled with 1's except the main diagonal
+        (top-left to bottom-right) that will be filled with 0's. This class will have one adjacency more than networks,
+        because each network is compose of two different windows. This method is oriented for instances with no window
+        size, which is the same as window size equal to zero. For this class instantiation, it also generates an empty
+        array with the needed shape for the storage of the early warning signals.
+
+        :param pandas datetime start_date_window: Start date corresponding to the first window's date.
+
+        :return: List of the adjacency matrices for each temporal instant from the start date to the end date.
+        :rtype: numpy [[[int]]]
+        """
         adjacencies = super().generate_adjacencies_no_window(start_date_window)
         self.l_dnm_s = np.empty((len(self.countries), adjacencies.shape[0] - 1))
-        self.l_dnm_s[:] = np.nan
 
         return adjacencies
 
     def parallel_window_to_network(self, node, window_t0, window_t1, adjacency):
+        """
+        Due to the slow performance of this specific early warning marker, it has been necessary to parallelize
+        the code, specifically the function window_to_network. For this task, a function to calculate the
+        Landscape - Dynamic Network Marker (L-DNM) for a specific node and window it has been created.
+
+        :param int node: Position of the node of study.
+        :param numpy [[float]] window_t0: Data of the confirmed covid cases in a fixed period of time, where the Rows
+            represent each country and the Columns represent each date from the latest to the new ones.
+        :param numpy [[float]] window_t1: Data of the confirmed covid cases in a fixed period of time, where the Rows
+            represent each country and the Columns represent each date from the latest to the new ones.
+        :param numpy [[[int]]] adjacency: List of all the adjacency matrices in the class.
+
+        :return: The Landscape - Dynamic Network Marker (L-DNM) for a specific node and window.
+        :rtype: float
+        """
+        # https://www.machinelearningplus.com/python/parallel-processing-python/
         sd = 0
         cc_in = 0
         cc_out = 0
@@ -196,15 +238,16 @@ class EWarningLDNM(EWarningDNM):
         """
         Transform the data of the confirmed covid cases of the two fixed windows with one date of difference between
         them to the graph matrix of the network, where the edges represent the coefficient correlation between
-        its pair of nodes, and the nodes represent each country.
+        its pair of nodes, and the nodes represent each country. For this instantiation of the class, it also
+        precalculates the early warning signals based on the Landscape - Dynamic Network Marker (L-DNM).
 
-        :param [[float]] window_t0: Data of the confirmed covid cases in a fixed period of time, where the Rows
+        :param numpy [[float]] window_t0: Data of the confirmed covid cases in a fixed period of time, where the Rows
             represent each country and the Columns represent each date from the latest to the new ones.
-        :param [[float]] window_t1: Data of the confirmed covid cases in a fixed period of time, where the Rows
+        :param numpy [[float]] window_t1: Data of the confirmed covid cases in a fixed period of time, where the Rows
             represent each country and the Columns represent each date from the latest to the new ones.
 
         :return: The network's matrix created with the data of the two fixed time windows.
-        :rtype: [[float]]
+        :rtype: numpy [[float]]
         """
         network = np.zeros((window_t0.shape[0], window_t0.shape[0]))
         # for node, _ in enumerate(window_t1):
@@ -260,6 +303,6 @@ class EWarningLDNM(EWarningDNM):
 
         :return: List of all the values of the Landscape - Dynamic Network Marker (L-DNM) of each
             network between the established dates.
-        :rtype: [[float]]
+        :rtype: numpy [[float]]
         """
-        return np.array([np.array(l_dnm_node) for l_dnm_node in self.l_dnm_s])
+        return self.l_dnm_s

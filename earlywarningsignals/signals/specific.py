@@ -183,7 +183,8 @@ class EWarningSpecific(EWarningGeneral):
         for netUnweighted, netAdjacency in zip(self.networks_unweighted, self.adjacencies):
             # g = nx.Graph(netUnweighted)
             # densities.append(nx.density(g))
-            densities.append(np.count_nonzero(netUnweighted == 1) / np.count_nonzero(netAdjacency > 0.0001))
+            densities.append(np.count_nonzero(netUnweighted == 1) / np.count_nonzero(netAdjacency > 0)
+                             if np.count_nonzero(netAdjacency > 0) > 0 else 0)
         return np.array(densities)
 
     def clustering_coefficient(self):
@@ -229,11 +230,11 @@ class EWarningSpecific(EWarningGeneral):
             edges.append(nx.number_of_edges(g))
         return np.array(edges)
 
-    def prs(self, pupulation_file=COUNTRY_INFO):
+    def prs(self, population_file=COUNTRY_INFO):
         """
         Calculates the early warning signals based on the Preparedness Risk Score (PRS) inside the network.
 
-        :param string pupulation_file: Location of the file containing additional information of each country. In this
+        :param string population_file: Location of the file containing additional information of each country. In this
             case the important column is the population. This file must have this structure:
 
             Country         | ISO-3166-Alpha2  | ISO-3166-Alpha3  | population    | Lat           | Long
@@ -256,7 +257,7 @@ class EWarningSpecific(EWarningGeneral):
         :rtype: numpy [int]
         """
         prs_s = []
-        population = pd.read_csv(pupulation_file)
+        population = pd.read_csv(population_file)
         countries_population = np.array(
             population.loc[population['ISO-3166-Alpha2'].isin(self.data_dataframe['ISO-3166-Alpha2'].to_list())]
                       .sort_values('ISO-3166-Alpha2')['population'].to_list(), dtype=np.int64)

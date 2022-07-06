@@ -22,7 +22,7 @@ from earlywarningsignals.signals.exceptions import DateOutRangeException, Countr
 # Default Class Parameters
 START_DATE_DEFAULT = pd.to_datetime('2020-03-01', format='%Y-%m-%d')
 END_DATE_DEFAULT = pd.to_datetime('2020-05-01', format='%Y-%m-%d')
-COVID_FILE_DEFAULT = COVID_JHU_CUMULATIVE
+COVID_FILE_DEFAULT = COVID_WHO_CUMULATIVE
 COUNTRIES_DEFAULT = ['AL', 'AD', 'AM', 'AT', 'AZ', 'BE', 'BA', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'GE',
                      'DE', 'GR', 'HU', 'IS', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'MC', 'ME', 'NL', 'MK', 'NO',
                      'PL', 'PT', 'MD', 'RO', 'SM', 'RS', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'TR', 'UA']
@@ -268,8 +268,8 @@ class EWarningGeneral:
         where the edges represent the coefficient correlation between its pair of nodes, and the nodes represent each
         country.
 
-        :param [[float]] window: Data of the confirmed covid cases in a fixed period of time, where the Rows represent
-            each country and the columns represent each date from the latest to the new ones.
+        :param numpy [[float]] window: Data of the confirmed covid cases in a fixed period of time, where the Rows
+            represent each country and the columns represent each date from the latest to the new ones.
 
         :return: The network's matrix created with the data of a fixed time window.
         :rtype: numpy [[float]]
@@ -363,10 +363,12 @@ class EWarningGeneral:
     def k_fold_changes(series, k_fold, step=1):
         """
         Generates the tipping points of a time series based on fold change. This measure established a tipping point if
-        a value increments k_fold times from one sample to the next one.
+        a value increments k_fold times from one sample to the next one. Instead of using the default measure, it has
+        been upgraded to compare one sample to the following ones based on a step parameter.
 
-        :param numpy [float] series: Time series for finding the tipping points
+        :param numpy [float] series: Time series for finding the tipping points.
         :param float k_fold: Quantity of change between one sample and the next one.
+        :param int step: Number of samples from the original one to be compared.
 
         :return: A numpy array with the same shape as the original time series but filled with 0 except the tipping
             points which have 1.
@@ -377,6 +379,38 @@ class EWarningGeneral:
         for i in range(len(series) - step):
             for j in range(1, step + 1):
                 if series[i + j] > k_fold * series[i] and series[i] != 0:
+                    tipping_points[i + j] = 1
+
+        return tipping_points
+
+    @staticmethod
+    def k_fold_changes_multiple(series, k_fold, step=1, rate_compare=0.8):
+        """
+        Generates the tipping points of a bunch of simultaneous time series based on fold change. This measure
+        established a tipping point if a value increments k_fold times from one sample to the next one.
+        Instead of using the default measure, it has been upgraded to compare one sample to the following ones
+        based on a step parameter. Additionally, to be less strict in case of a comparison between a large amount of
+        time series it also incorporates a rate_compare parameter to determine the minimum number of time series that
+        satisfies the measure.
+
+        :param numpy [[float]] series: The group of time series for finding the tipping points. All must have same size.
+        :param float k_fold: Quantity of change between one sample and the next one.
+        :param int step: Number of samples from the original one to be compared.
+        :param float rate_compare: Minimum percentage of time series to fulfill the fold change measure.
+
+        :return: A numpy array with the same size as the length of all the time series, filled with 0 except the tipping
+            points which have 1.
+        :rtype: numpy [int]
+        """
+        intervale_size = series.shape[1]
+        tipping_points = np.zeros(intervale_size)
+        series_transposed = series.transpose()
+
+        for i in range(intervale_size - step):
+            for j in range(1, step + 1):
+                if (sum(series_transposed[i + j] > k_fold * series_transposed[i]) / len(series_transposed[i])
+                        >= rate_compare)\
+                   and sum(series_transposed[i] != 0) / len(series_transposed[i]) >= rate_compare:
                     tipping_points[i + j] = 1
 
         return tipping_points

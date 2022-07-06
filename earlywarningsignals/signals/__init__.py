@@ -6,3 +6,4 @@ from earlywarningsignals.signals.landscape_dnm import EWarningLDNM
 
 from earlywarningsignals.signals.dynamic_adjacency.specific import EWarningSpecificDynamic
 from earlywarningsignals.signals.dynamic_adjacency.dnm import EWarningDNMDynamic
+from earlywarningsignals.signals.dynamic_adjacency.landscape_dnm import EWarningLDNMDynamic

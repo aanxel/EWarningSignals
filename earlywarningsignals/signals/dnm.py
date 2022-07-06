@@ -110,7 +110,7 @@ class EWarningDNM(EWarningGeneral):
 
         :return: Matrix with the transformed data. Each Row represents a country, and each Column contains
             the cases from the first date of study until the end date.
-        :rtype: [[int]]
+        :rtype: numpy [[int]]
         """
         transformed_dataframe = self.data_dataframe.copy()
 
@@ -167,14 +167,14 @@ class EWarningDNM(EWarningGeneral):
         them to the graph matrix of the network, where the edges represent the coefficient correlation between
         its pair of nodes, and the nodes represent each country.
 
-        :param [[float]] window_t0: Data of the confirmed covid cases in a fixed period of time, where the Rows
+        :param numpy [[float]] window_t0: Data of the confirmed covid cases in a fixed period of time, where the Rows
             represent each country and the Columns represent each date from the latest to the new ones.
-        :param [[float]] window_t1: Data of the confirmed covid cases in a fixed period of time, where the Rows
+        :param numpy [[float]] window_t1: Data of the confirmed covid cases in a fixed period of time, where the Rows
             represent each country and the Columns represent each date from the latest to the new ones.
-        :param [[int]] adjacency_t0: Adjacency matrix as a 2d int array of the window_t0. In this case is not needed,
-            so it will be ignored.
-        :param [[int]] adjacency_t1: Adjacency matrix as a 2d int array of the window_t1. In this case is not needed,
-            so it will be ignored.
+        :param numpy [[int]] adjacency_t0: Adjacency matrix as a 2d int array of the window_t0. In this case is
+            not needed, so it will be ignored.
+        :param numpy [[int]] adjacency_t1: Adjacency matrix as a 2d int array of the window_t1. In this case is
+            not needed, so it will be ignored.
 
         :return: The network's matrix created with the data of the two fixed time windows.
         :rtype: numpy [[float]]

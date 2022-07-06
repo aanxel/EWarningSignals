@@ -15,8 +15,8 @@ from earlywarningsignals.signals.exceptions import CountryUndefinedException
 
 class EWarningSpecificDynamic(EWarningSpecific):
     """
-    Specialization of the EWarningGeneral general class for the generation of early warning signals and markers
-    to early detect outbreaks.
+    Specialization of the EWarningSpecific class for the implementation of dynamic adjacency matrices based on the
+    flight frequency of the window.
     Notes: It assumes that every country has the same number of reports and that there is no gap between the first date
     with covid reports and the last one. Also, it assumes tha all countries have the same date for the first report,
     and hence all countries have the same date for its last report. (All things has been proved)
@@ -70,7 +70,8 @@ class EWarningSpecificDynamic(EWarningSpecific):
                 aren't enough dates for the window size. If there aren't enough dates for a non window size
                 configuration.
             CountryUndefinedException: If there are less than two selected countries. If any country inside the
-                countries list isn't contain in the database.
+                countries list isn't contain in the database. If the list of countries specified are not the same as the
+                46 members of the Council of Europe.
         """
         if set(countries) != set(general.COUNTRIES_DEFAULT):
             raise CountryUndefinedException('This class only works with if <countries> is equal to the list '
